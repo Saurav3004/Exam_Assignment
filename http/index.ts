@@ -1,7 +1,7 @@
 import express from 'express'
 import { AddStudentSchema, AttendanceSchema, CreateClassSchema, LoginSchema, SignupSchema } from './types'
 import { Attendance, Class, User } from './models'
-import jwt from "jsonwebtoken"
+import jwt, { type JwtPayload } from "jsonwebtoken"
 import { authMiddleware, teacherRoleMiddleware } from './middleware'
 import mongoose from 'mongoose'
 import expressWs from 'express-ws'
@@ -10,10 +10,23 @@ expressWs(app)
 
 let activeSesion: {classId:string,startedAt:Date,attendance:Record<string,string>} | null = null
 
-app.ws("/ws",function(ws,req:Request){
-    ws.on('message',function(msg:string){
-        console.log(msg)
-    })
+app.ws("/ws",function(ws,req){
+    try {
+        const token = req.query.token
+        const {userId,role} = jwt.verify(token,process.env.JWT_SECRET_KEY!) as JwtPayload
+        
+        ws.on('message',function(msg:string){
+            console.log(msg)
+        })
+    } catch (error) {
+        ws.send(JSON.stringify({
+            "event":"ERROR",
+            "data":{
+                "message":"Incorrect token"
+            }
+        }))
+        ws.close()
+    }
 })
 
 app.post("/auth/signup",async (req,res) => {
