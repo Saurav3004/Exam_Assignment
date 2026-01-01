@@ -135,12 +135,26 @@ app.ws("/ws", function (ws, req) {
                 const present = Object.keys(activeSesion?.attendance || []).filter(x => activeSesion?.attendance[x] === "present").length;
                 const absent = total - present
 
-                classDb?.studentIds.map(studentId => {
-                   Attendance.create({
+                const promises = classDb?.studentIds.map(async (studentId) => {
+                   await Attendance.create({
                     classId:classDb._id,
                     studentId,
                     status:Object.keys(activeSesion?.attendance || []).find(x => x === studentId.toString()) ? "present" : "absent"
                    })
+                }) || []
+                await Promise.all(promises)
+                activeSesion = null;
+
+                allWs.map(ws => {
+                  ws.send(JSON.stringify({
+                    event:"DONE",
+                    data:{
+                      message:"Attendance Persisted",
+                      total,
+                      present,
+                      absent
+                    }
+                  }))
                 })
                 }else{
                   ws.send(JSON.stringify({
