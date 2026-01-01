@@ -73,18 +73,18 @@ app.ws("/ws", function (ws, req) {
             ws.send(JSON.stringify({
                   event: "ERROR",
                   data: {
-                    message: "No active session",
+                    message: "You are not a teacher",
                   },
                 }))
               }
               break;
           case "TODAY_SUMMARY":
             if (ws.user.role === "Teacher" && ws.user.userId === activeSesion?.teacherId){
-                const userDb = await User.find({
+                const classDb = await Class.findOne({
                   _id: activeSesion?.classId
                 })
                 
-                const total = userDb.length;
+                const total = classDb?.studentIds.length ?? 0;
                 const present = Object.keys(activeSesion?.attendance || []).filter(x => activeSesion?.attendance[x] === "present").length;
                 const absent = total - present
                 allWs.map(x => ws.send(JSON.stringify({
@@ -99,8 +99,8 @@ app.ws("/ws", function (ws, req) {
             }else{
               ws.send(JSON.stringify({
                   event: "ERROR",
-                  data: {
-                    message: "No active session",
+                  "data": {
+                    message: "You are not a teacher",
                   },
                 }))
             }
@@ -108,7 +108,48 @@ app.ws("/ws", function (ws, req) {
             case "MY_ATTENDANCE":
               if(ws.user.role === "Student"){
                 const status = activeSesion?.attendance[ws.user.userId]
+                if(status){
+                  ws.send(JSON.stringify({
+                  event:"MY_ATTENDANCE",
+                  data:{
+                    "status":status
+                  }
+                }))
+                }else{
+                  ws.send(JSON.stringify({
+                  event:"MY_ATTENDANCE",
+                  data:{
+                    "status":"not updated yet"
+                  }
+                }))
+                }
               }
+              break;
+              case "DONE":
+                if(ws.user.role == "Teacher" && ws.user.role === activeSesion?.teacherId){
+                   const classDb = await Class.findOne({
+                  _id: activeSesion?.classId
+                })
+                
+                const total = classDb?.studentIds.length ?? 0;
+                const present = Object.keys(activeSesion?.attendance || []).filter(x => activeSesion?.attendance[x] === "present").length;
+                const absent = total - present
+
+                classDb?.studentIds.map(studentId => {
+                   Attendance.create({
+                    classId:classDb._id,
+                    studentId,
+                    status:Object.keys(activeSesion?.attendance || []).find(x => x === studentId.toString()) ? "present" : "absent"
+                   })
+                })
+                }else{
+                  ws.send(JSON.stringify({
+                  event: "ERROR",
+                  "data": {
+                    message: "You are not a teacher",
+                  },
+                }))
+                }
               break;
             default:
               console.log("message not found")
