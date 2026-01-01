@@ -4,9 +4,17 @@ import { Attendance, Class, User } from './models'
 import jwt from "jsonwebtoken"
 import { authMiddleware, teacherRoleMiddleware } from './middleware'
 import mongoose from 'mongoose'
+import expressWs from 'express-ws'
 const app = express()
+expressWs(app)
 
 let activeSesion: {classId:string,startedAt:Date,attendance:Record<string,string>} | null = null
+
+app.ws("/ws",function(ws,req:Request){
+    ws.on('message',function(msg:string){
+        console.log(msg)
+    })
+})
 
 app.post("/auth/signup",async (req,res) => {
     const {data,success} = SignupSchema.safeParse(req.body)
@@ -310,7 +318,4 @@ app.post("/attendance/start",authMiddleware,teacherRoleMiddleware,async (req,res
 
 })
 
-app.get("/ws",(req,res) => {
-    
-})
 app.listen(3000)

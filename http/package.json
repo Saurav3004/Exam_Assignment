@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@types/express": "^5.0.6",
+    "@types/express-ws": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "express": "^5.2.1",
+    "express-ws": "^5.0.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.0",
     "zod": "^4.2.1"
